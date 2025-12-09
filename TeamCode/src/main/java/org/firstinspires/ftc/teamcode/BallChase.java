@@ -84,7 +84,7 @@ public class BallChase extends LinearOpMode {
         */
 
         for (Position linePos : BALL_LINES) {
-            goTo(linePos); // move to posiiton
+            goTo(linePos); // move to position
 
             // collect balls / track colours in what space of the spindex
 
