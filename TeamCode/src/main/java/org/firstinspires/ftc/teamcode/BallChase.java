@@ -75,7 +75,7 @@ public class BallChase extends LinearOpMode {
 
             go to ball line N
 
-            collect balls / track colours in what space of the spindex
+
 
             go the shooter
             shoot in the right order
@@ -84,11 +84,30 @@ public class BallChase extends LinearOpMode {
         */
 
         for (Position linePos : BALL_LINES) {
-            while (opModeIsActive()) if (moveRobot(linePos)) break; // move to posiiton
+            goTo(linePos); // move to posiiton
 
+            // collect balls / track colours in what space of the spindex
 
-
+            goTo(BASKET);
+            // shoot in the right order
         }
+    }
+
+    int SetAprilTag() {
+        huskylens.selectAlgorithm(HuskyLens.Algorithm.TAG_RECOGNITION);
+        HuskyLens.Block[] blocks = huskylens.blocks();
+
+        if (blocks.length > 0) {
+            HuskyLens.Block firstBlock = blocks[0];
+            telemetry.addData("First Tag", "ID=%d at (%d,%d) size %dx%d",
+                    firstBlock.id, firstBlock.x, firstBlock.y,
+                    firstBlock.width, firstBlock.height
+            );
+            telemetry.update();
+            return firstBlock.id;
+        }
+        else
+            return -1;
     }
 
     private boolean moveRobot(Position target) {
@@ -108,20 +127,8 @@ public class BallChase extends LinearOpMode {
         return false;
     }
 
-    int SetAprilTag() {
-        huskylens.selectAlgorithm(HuskyLens.Algorithm.TAG_RECOGNITION);
-        HuskyLens.Block[] blocks = huskylens.blocks();
-
-        if (blocks.length > 0) {
-            HuskyLens.Block firstBlock = blocks[0];
-            telemetry.addData("First Tag", "ID=%d at (%d,%d) size %dx%d",
-                    firstBlock.id, firstBlock.x, firstBlock.y,
-                    firstBlock.width, firstBlock.height
-            );
-            telemetry.update();
-            return firstBlock.id;
-        }
-        else
-            return -1;
+    private void goTo(Position target) {
+        while (opModeIsActive()) if (moveRobot(target)) break;
     }
+
 }
