@@ -127,6 +127,51 @@ public class BallChase extends LinearOpMode {
             return -1;
     }
 
+    private Ball getBall() {
+        HuskyLens.Block best = null;
+        double bestArea = 0;
+
+        while (opModeIsActive()) {
+            HuskyLens.Block[] blocks = huskylens.blocks();
+            if (blocks == null) continue; // go to next iteration if no blocks found
+
+            // find the block with the largest area on camera screen
+            for (HuskyLens.Block b : blocks) {
+                double area = b.width * b.height;
+                if (!(area > bestArea)) continue; // skip if area is too small
+
+                bestArea = area;
+                best = b;
+            }
+
+            // another failsafe if no blocks found
+            if (best == null) {
+                telemetry.addLine("Looking for a ball...");
+                telemetry.update();
+                sleep(40);
+
+                continue;
+            }
+
+            // setting the type of artifact based on ID
+            Artifact artifactType;
+            switch (best.id) {
+                case 1:
+                    artifactType = Artifact.GREEN;
+                    break;
+                case 2:
+                    artifactType = Artifact.PURPLE;
+                    break;
+                default:
+                    artifactType = Artifact.offset;
+                    break;
+            }
+            return new Ball(artifactType, best);
+        }
+
+        return null; // ANOTHER failsafe
+    }
+
     private boolean moveRobot(Position target) {
         robot.goToXY_PID(target.x, target.y, target.heading, 30);
 
