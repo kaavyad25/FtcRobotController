@@ -18,7 +18,7 @@ public class BallChase extends LinearOpMode {
     static final int GREEN = 2;
     static final int[][] BALL_ORDERS = {{GREEN, PURPLE, GREEN}, {PURPLE, GREEN, PURPLE}, {PURPLE, PURPLE, GREEN}};
 
-    // FIXME: tweak values based on which side, AND where we start, AND real field coordinates
+    // FIXME: tweak values based on which side, AND ADD real field coordinates
     static final Position BASKET = new Position(60, 24, 0);
     static final Position[] BALL_LINES = {
         new Position(60, 24, 90),
