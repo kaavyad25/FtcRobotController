@@ -30,6 +30,7 @@ public class HuskyLensCamera {
         huskyLens.selectAlgorithm(HuskyLens.Algorithm.TAG_RECOGNITION);
     }
 
+    //TODO: Change this code, its ugly.
     private void setHuskyMode(HLMode currentMode) {
 
         switch (currentMode) {

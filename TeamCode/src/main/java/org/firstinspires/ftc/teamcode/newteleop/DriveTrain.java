@@ -52,26 +52,27 @@ public class DriveTrain {
 
     public void fieldOrientedTranslate(double targetPowerX, double targetPowerY, double rotation, double currentRotation) {
 
-        // direction robot is facing, in degrees
-        double robotYawDeg = Math.toDegrees(angleWrapRad(Math.toRadians(currentRotation)));
+        // direction robot is facing, in radians
+        double robotYawRad = angleWrapRad(Math.toRadians(currentRotation));
 
-        // direction stick is pointing, mapped to [-180, 180]
-        double stickRotationDeg = Math.toDegrees(Math.atan2(targetPowerY, targetPowerX));
+        // direction stick is pointing, mapped to [-π, π]
+        double stickRotationRad = Math.atan2(targetPowerY, targetPowerX);
 
         // offset joystick vector to account for robot orientation
-        double thetaDeg = 360.0 - robotYawDeg + stickRotationDeg;
+        double thetaRad = stickRotationRad - robotYawRad;
 
         // sets power to be length of joystick vector
         double power = Math.hypot(targetPowerX, targetPowerY);
 
         // restricting power between [-1, 1] because of a bug:
-        // if abs(targetPowerX), abs(targetPowerY) = 1, then power would be abs(√2) > 1.
+        // if |targetPowerX|, |targetPowerY| = 1, then power would be |√2| > 1.
         // Ergo resulting in inefficiencies as motor power is [-1, 1]
-        power = Range.clip(power, -1.0, 1.0);
+        // Note that for now, power is always positive, hence we need not clip it between [-1, 1]
+        power = Range.clip(power, 0.0, 1.0);
 
         // sin, cos of corrected angle, accounting for mecanum offset
-        double sin = Math.sin((thetaDeg*Math.PI/180.0) + Math.PI/4);
-        double cos = Math.cos((thetaDeg*Math.PI/180.0) + Math.PI/4);
+        double sin = Math.sin(thetaRad - Math.PI/4);
+        double cos = Math.cos(thetaRad - Math.PI/4);
 
         double maxSinCos = Math.max(Math.abs(sin), Math.abs(cos));
 
@@ -86,11 +87,13 @@ public class DriveTrain {
     //      the angle theta. By applying sin to the power of one set of wheels,
     //      and cos to other, we recreate that vector.
 
-        frontLeftPower =    power*cos/maxSinCos + rotation; // swap +- to invert rotation direction
-        backLeftPower =     power*sin/maxSinCos + rotation;
+        if (1e-6 > maxSinCos) maxSinCos = 1; // avoid division by 0
 
-        frontRightPower =   power*sin/maxSinCos - rotation;
-        backRightPower =    power*cos/maxSinCos - rotation;
+        frontLeftPower =    power*sin/maxSinCos + rotation; // swap +- to invert rotation direction
+        backLeftPower =     power*cos/maxSinCos + rotation;
+
+        frontRightPower =   power*cos/maxSinCos - rotation;
+        backRightPower =    power*sin/maxSinCos - rotation;
 
         double frontMax =   Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
         double backMax =    Math.max(Math.abs(backLeftPower), Math.abs(backRightPower));
@@ -98,7 +101,7 @@ public class DriveTrain {
         double maxPower =   Math.max(frontMax, backMax);
 
         // a normalization
-        if (maxPower > 1.0) {
+        if (1.0 < maxPower) {
 
             frontLeftPower /= maxPower;
             frontRightPower /= maxPower;
@@ -120,7 +123,8 @@ public class DriveTrain {
     // android studio was complaining about the complex if statement
     private boolean motorsNotNull() {
 
-        return null != frontLeftMotor && null != frontRightMotor && null != backLeftMotor && null != backRightMotor;
+        return  null != frontLeftMotor && null != frontRightMotor &&
+                null != backLeftMotor && null != backRightMotor;
     }
 
     // practically same logic as fieldOrientedTranslate(),
@@ -140,18 +144,20 @@ public class DriveTrain {
         double backRightPower;
         double backLeftPower;
 
-        frontLeftPower = power*cos/maxSinCos + rotation;
-        backLeftPower = power*sin/maxSinCos + rotation;
+        if (1e-6 > maxSinCos) maxSinCos = 1;
 
-        frontRightPower = power*sin/maxSinCos - rotation;
-        backRightPower = power*cos/maxSinCos - rotation;
+        frontLeftPower =    power*sin/maxSinCos + rotation;
+        backLeftPower =     power*cos/maxSinCos + rotation;
+
+        frontRightPower =   power*cos/maxSinCos - rotation;
+        backRightPower =    power*sin/maxSinCos - rotation;
 
         double frontMax = Math.max(Math.abs(frontLeftPower), Math.abs(frontRightPower));
         double backMax = Math.max(Math.abs(backLeftPower), Math.abs(backRightPower));
 
         double maxPower = Math.max(frontMax, backMax);
 
-        if (maxPower > 1.0){
+        if (1.0 < maxPower){
 
             frontLeftPower /= maxPower;
             frontRightPower /= maxPower;

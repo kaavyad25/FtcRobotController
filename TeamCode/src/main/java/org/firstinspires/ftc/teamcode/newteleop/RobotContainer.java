@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
 
 
 public class RobotContainer {
@@ -20,9 +21,13 @@ public class RobotContainer {
 
     private static final double STANDARD_INTAKE_POWER = 0.5;
     private static double standardOuttakePower = 1.0; // 1 by default, will be calculable later
-    private static final double RAMP_LAUNCH_ANGLE_DEGREES = 40.0; //FIXME: Measure, this is simply a guess
-    private static final double FLYWHEEL_DIAMETER_CENTIMETERS = 15.0; //FIXME: Measure, this is simply a guess
-
+    private static final double RAMP_LAUNCH_ANGLE_DEGREES = 70.0; //FIXME: Measure, this is simply a guess
+    private static final double GECKO_WHEEL_DIAMETER_METERS = 0.096; //FIXME: Measure, this is simply a guess
+    private static final int MOTOR_MAX_RPM = 6000;
+    private static final int GEAR_RATIO = 1;
+    private static final double LAUNCH_EFFICIENCY = 0.7;
+    private static final double SCORE_HEIGHT_INCHES = 25.5;
+    private static final double inchesToMeters = 39.37;
     private static final int HUSKY_HEIGHT_PIXELS = 240;
     private static final int HUSKY_WIDTH_PIXELS = 320;
     private static final double APRIL_TAG_DIMENSIONS_INCHES = 6.5;
@@ -99,25 +104,67 @@ public class RobotContainer {
 
         // Now, we can observe that tan(halfFOVRadians) = ( 0.5 * screenWidthInches) / distance;
         // we can then rearrange to find distance.
-        double distance = (screenWidthInches / 2) / Math.tan(halfFOVRadians);
+        double distanceInches = (screenWidthInches / 2) / Math.tan(halfFOVRadians);
 
-        return  distance;
+        //Convert to meters, more useful
+        double distanceMeters = distanceInches / inchesToMeters;
+
+        return  distanceMeters;
     }
-    /*
-    //TODO: Determine logic for outtake power
-    public void setStandardOuttakePower(){
 
-        double distance = calculateDistance();
 
-        if (-1.0 == distance) {
-            standardOuttakePower = 1.0
+    /**Presumptions for this distance power application
+     * Weight of the ball is negligible
+     * No slip; Ball leaves outtake with tangential speed equal to wheel rim  speed
+     * Air resistance is negligible
+     * Simply put, because we know the gecko wheel diameter, the launch angle, and the
+     */
+
+
+    //TODO: Test for accuracy
+    public void setStandardOuttakePower() {
+
+        final double distance = calculateDistance();
+
+        if (0 >= distance) {
+            standardOuttakePower = 1.0;
             return;
         }
 
+        final double g = 9.81;
+        final double thetaRad = Math.toRadians(RAMP_LAUNCH_ANGLE_DEGREES);
 
+        final double heightMeters = SCORE_HEIGHT_INCHES * inchesToMeters;
 
+        final double tan = Math.tan(thetaRad);
+        final double cos = Math.cos(thetaRad);
+
+        double denom = 2 * Math.pow(cos, 2) * (distance * tan - heightMeters);
+
+        // Invalid trajectory
+        if (0 >= denom) {
+            standardOuttakePower = 1.0;
+            return;
+        }
+
+        double velocitySquared = (g * distance * distance) / denom;
+        double velocity = Math.sqrt(velocitySquared);
+
+        final double wheelCircumference = Math.PI * GECKO_WHEEL_DIAMETER_METERS;
+
+        // Convert linear velocity → wheel RPM
+        double wheelRPS = velocity / wheelCircumference;
+        double wheelRPM = wheelRPS * 60.0;
+
+        // Account for gearing + losses
+        double effectiveMaxRPM = MOTOR_MAX_RPM / GEAR_RATIO;
+
+        double theoreticalPower = wheelRPM / effectiveMaxRPM;
+
+        // Empirical correction
+        theoreticalPower *= LAUNCH_EFFICIENCY;
+
+        standardOuttakePower = Range.clip(theoreticalPower, 0.0, 1.0);
     }
 
-
-     */
 }
